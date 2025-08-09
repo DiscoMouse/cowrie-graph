@@ -1,2 +1,7 @@
 # cowrie-graph
-cowrie-graph is an attempt at a modern verion of kippo-graph
+
+Charting for cowrie Honeypots.
+https://github.com/cowrie/cowrie
+
+Inspired by
+https://github.com/ikoniaris/kippo-graph
