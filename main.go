@@ -6,36 +6,41 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
+// Config struct to hold our configuration
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
 }
 
+// TopPassword struct will hold the result of our top passwords query
 type TopPassword struct {
 	Password string `json:"password"`
 	Count    int    `json:"count"`
 }
 
+// --- NEW: Struct for our time-series data ---
+// DailyAttackStat struct will hold the result of our attacks-by-day query
+type DailyAttackStat struct {
+	Date      string `json:"date"`
+	Successes int    `json:"successes"`
+	Failures  int    `json:"failures"`
+}
+
+// getTopPasswords handler function remains the same
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		query := `
-			SELECT password, COUNT(*) as count 
-			FROM auth 
-			GROUP BY password 
-			ORDER BY count DESC 
-			LIMIT 10;
-		`
+		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
 		rows, err := db.Query(query)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		defer rows.Close()
-
 		passwords := []TopPassword{}
 		for rows.Next() {
 			var p TopPassword
@@ -46,6 +51,43 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 			passwords = append(passwords, p)
 		}
 		c.JSON(http.StatusOK, passwords)
+	}
+}
+
+// --- NEW: Handler function for attacks by day ---
+func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT
+				DATE(timestamp) AS attack_date,
+				SUM(success) AS successful_logins,
+				COUNT(*) - SUM(success) AS failed_logins
+			FROM
+				auth
+			GROUP BY
+				attack_date
+			ORDER BY
+				attack_date ASC;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		stats := []DailyAttackStat{}
+		for rows.Next() {
+			var s DailyAttackStat
+			var t time.Time // Use time.Time to scan the DATE from SQL
+			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			s.Date = t.Format("2006-01-02") // Format the date into a "YYYY-MM-DD" string
+			stats = append(stats, s)
+		}
+		c.JSON(http.StatusOK, stats)
 	}
 }
 
@@ -68,15 +110,14 @@ func main() {
 	log.Println("Successfully connected to the database!")
 
 	router := gin.Default()
-
-	// --- THIS IS THE CORRECTED LINE ---
-	// Serve the index.html file for the root URL path
 	router.StaticFile("/", "./static/index.html")
 
 	// API Routes
 	api := router.Group("/api/v1")
 	{
 		api.GET("/top-passwords", getTopPasswords(db))
+		// --- NEW: Register the new route ---
+		api.GET("/attacks-by-day", getAttacksByDay(db))
 	}
 
 	log.Println("Starting Gin server on :8080")

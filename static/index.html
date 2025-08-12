@@ -7,42 +7,73 @@
 </head>
 <body>
     <h1>Top 10 Passwords</h1>
+    <div id="topPasswordsChart" style="width: 800px;height:600px;"></div>
 
-    <div id="main" style="width: 800px;height:600px;"></div>
+    <hr>
+
+    <h1>Attacks Over Time</h1>
+    <div id="attacksByDayChart" style="width: 800px;height:600px;"></div>
 
     <script type="text/javascript">
-      // 1. Initialize the ECharts instance based on the prepared div
-      var myChart = echarts.init(document.getElementById('main'));
-
-      // 2. Fetch data from our API endpoint
+      // --- Chart 1: Top Passwords ---
+      var topPasswordsChart = echarts.init(document.getElementById('topPasswordsChart'));
       fetch('/api/v1/top-passwords')
         .then(response => response.json())
         .then(data => {
-          
-          // 3. Process the API data into the format ECharts needs
-          // ECharts wants separate arrays for labels (passwords) and values (counts)
           const passwords = data.map(item => item.password);
           const counts = data.map(item => item.count);
-
-          // 4. Specify the chart configuration and data
           var option = {
             tooltip: {},
-            xAxis: {
-              type: 'value'
-            },
-            yAxis: {
-              type: 'category',
-              data: passwords.reverse() // Reverse to show the highest value at the top
-            },
-            series: [{
-              name: 'Attempts',
-              type: 'bar',
-              data: counts.reverse()
-            }]
+            xAxis: { type: 'value' },
+            yAxis: { type: 'category', data: passwords.reverse() },
+            series: [{ name: 'Attempts', type: 'bar', data: counts.reverse() }]
           };
+          topPasswordsChart.setOption(option);
+        });
 
-          // 5. Display the chart using the configuration
-          myChart.setOption(option);
+      // --- Chart 2: Attacks Over Time ---
+      var attacksByDayChart = echarts.init(document.getElementById('attacksByDayChart'));
+      fetch('/api/v1/attacks-by-day')
+        .then(response => response.json())
+        .then(data => {
+          const dates = data.map(item => item.date);
+          const successes = data.map(item => item.successes);
+          const failures = data.map(item => item.failures);
+
+          var option = {
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['Failures', 'Successes'] },
+            xAxis: { type: 'category', boundaryGap: false, data: dates },
+            yAxis: { type: 'value' },
+            // --- THIS IS THE NEW PART ---
+            dataZoom: [
+              {
+                type: 'slider',
+                start: 70,
+                end: 100
+              }
+            ],
+            // --- END OF NEW PART ---
+            series: [
+              {
+                name: 'Failures',
+                type: 'line',
+                stack: 'Total',
+                areaStyle: {},
+                emphasis: { focus: 'series' },
+                data: failures
+              },
+              {
+                name: 'Successes',
+                type: 'line',
+                stack: 'Total',
+                areaStyle: {},
+                emphasis: { focus: 'series' },
+                data: successes
+              }
+            ]
+          };
+          attacksByDayChart.setOption(option);
         });
     </script>
 </body>
