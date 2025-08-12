@@ -1,0 +1,3 @@
+{
+  "database_dsn": "your_db_user:your_password@tcp(127.0.0.1:3306)/your_cowrie_db"
+}

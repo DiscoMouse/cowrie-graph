@@ -30,3 +30,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Configuration files containing secrets
+config.json
+
+# Compiled Go binary
+cowrie-graph
