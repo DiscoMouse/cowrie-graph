@@ -11,33 +11,50 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// This struct matches the structure of our config.json file
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
 }
 
-func loadConfig() (Config, error) {
-	var config Config
-	file, err := os.Open("config.json")
-	if err != nil {
-		return config, err
-	}
-	defer file.Close()
+type TopPassword struct {
+	Password string `json:"password"`
+	Count    int    `json:"count"`
+}
 
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
-	return config, err
+func getTopPasswords(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT password, COUNT(*) as count 
+			FROM auth 
+			GROUP BY password 
+			ORDER BY count DESC 
+			LIMIT 10;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		passwords := []TopPassword{}
+		for rows.Next() {
+			var p TopPassword
+			if err := rows.Scan(&p.Password, &p.Count); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			passwords = append(passwords, p)
+		}
+		c.JSON(http.StatusOK, passwords)
+	}
 }
 
 func main() {
-	// --- Load Configuration ---
 	config, err := loadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v. Did you create config.json?", err)
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
-	// --- End of Load Configuration ---
 
-	// --- Database Connection ---
 	db, err := sql.Open("mysql", config.DatabaseDSN)
 	if err != nil {
 		log.Fatal("Failed to open database connection: ", err)
@@ -49,11 +66,31 @@ func main() {
 		log.Fatal("Failed to connect to database: ", err)
 	}
 	log.Println("Successfully connected to the database!")
-	// --- End of Database Connection ---
 
 	router := gin.Default()
-	router.StaticFS("/", http.Dir("./static"))
+
+	// --- THIS IS THE CORRECTED LINE ---
+	// Serve the index.html file for the root URL path
+	router.StaticFile("/", "./static/index.html")
+
+	// API Routes
+	api := router.Group("/api/v1")
+	{
+		api.GET("/top-passwords", getTopPasswords(db))
+	}
 
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
+}
+
+func loadConfig() (Config, error) {
+	var config Config
+	file, err := os.Open("config.json")
+	if err != nil {
+		return config, err
+	}
+	defer file.Close()
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&config)
+	return config, err
 }

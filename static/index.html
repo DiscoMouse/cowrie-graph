@@ -3,8 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <title>Cowrie-Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 </head>
 <body>
-    <h1>Dashboard coming soon...</h1>
+    <h1>Top 10 Passwords</h1>
+
+    <div id="main" style="width: 800px;height:600px;"></div>
+
+    <script type="text/javascript">
+      // 1. Initialize the ECharts instance based on the prepared div
+      var myChart = echarts.init(document.getElementById('main'));
+
+      // 2. Fetch data from our API endpoint
+      fetch('/api/v1/top-passwords')
+        .then(response => response.json())
+        .then(data => {
+          
+          // 3. Process the API data into the format ECharts needs
+          // ECharts wants separate arrays for labels (passwords) and values (counts)
+          const passwords = data.map(item => item.password);
+          const counts = data.map(item => item.count);
+
+          // 4. Specify the chart configuration and data
+          var option = {
+            tooltip: {},
+            xAxis: {
+              type: 'value'
+            },
+            yAxis: {
+              type: 'category',
+              data: passwords.reverse() // Reverse to show the highest value at the top
+            },
+            series: [{
+              name: 'Attempts',
+              type: 'bar',
+              data: counts.reverse()
+            }]
+          };
+
+          // 5. Display the chart using the configuration
+          myChart.setOption(option);
+        });
+    </script>
 </body>
 </html>
