@@ -20,10 +20,10 @@ This project is a spiritual successor to the original `kippo-graph`, built from 
 - [ ] "Top 10" lists for most common usernames, passwords, attacking IPs, and countries.
 - [ ] World map visualization of attacker origins.
 - [ ] SSH client version fingerprinting and analysis.
-- [ ] Local, cached GeoIP and ASN lookups using the free GeoLite2 database.
+- [ ] Local, cached GeoIP and ASN lookups using local database that can be updated.
 - [ ] TOR exit node detection.
 - [ ] A secure, API-driven architecture.
-- [ ] (Experimental) A Terminal User Interface (TUI) as a potential alternative frontend.
+- [ ] (Experimental) A Terminal User Interface (TUI) as a potential complimentary frontend.
 
 ---
 
