@@ -29,11 +29,17 @@ type TopUsername struct {
 	Count    int    `json:"count"`
 }
 
-// --- NEW ---
 // TopIP struct will hold the result of our top IPs query
 type TopIP struct {
 	IP    string `json:"ip"`
 	Count int    `json:"count"`
+}
+
+// --- NEW ---
+// TopClient struct will hold the result of our top clients query
+type TopClient struct {
+	Version string `json:"version"`
+	Count   int    `json:"count"`
 }
 
 // DailyAttackStat struct will hold the result of our attacks-by-day query
@@ -43,7 +49,6 @@ type DailyAttackStat struct {
 	Failures  int    `json:"failures"`
 }
 
-// getTopPasswords is our handler function for the top passwords endpoint.
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
@@ -53,7 +58,6 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		passwords := []TopPassword{}
 		for rows.Next() {
 			var p TopPassword
@@ -67,7 +71,6 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// getTopUsernames is our handler for the top usernames endpoint.
 func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 10;`
@@ -77,7 +80,6 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		usernames := []TopUsername{}
 		for rows.Next() {
 			var u TopUsername
@@ -91,8 +93,6 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// --- NEW ---
-// getTopIPs is our handler for the top attacking IPs endpoint.
 func getTopIPs(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip ORDER BY count DESC LIMIT 10;`
@@ -102,7 +102,6 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		ips := []TopIP{}
 		for rows.Next() {
 			var i TopIP
@@ -116,7 +115,44 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// getAttacksByDay is our handler function for the attacks-by-day endpoint.
+// --- NEW ---
+// getTopClients is our handler for the top SSH clients endpoint.
+func getTopClients(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT
+				c.version,
+				COUNT(s.id) as count
+			FROM
+				sessions s
+			JOIN
+				clients c ON s.client = c.id
+			GROUP BY
+				c.version
+			ORDER BY
+				count DESC
+			LIMIT 10;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		clients := []TopClient{}
+		for rows.Next() {
+			var cl TopClient
+			if err := rows.Scan(&cl.Version, &cl.Count); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			clients = append(clients, cl)
+		}
+		c.JSON(http.StatusOK, clients)
+	}
+}
+
 func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
@@ -180,15 +216,15 @@ func main() {
 		api.GET("/top-passwords", getTopPasswords(db))
 		api.GET("/attacks-by-day", getAttacksByDay(db))
 		api.GET("/top-usernames", getTopUsernames(db))
-		// --- NEW ---
 		api.GET("/top-ips", getTopIPs(db))
+		// --- NEW ---
+		api.GET("/top-clients", getTopClients(db))
 	}
 
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
 
-// loadConfig loads the configuration from config.json
 func loadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")
