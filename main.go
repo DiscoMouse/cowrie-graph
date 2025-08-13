@@ -23,7 +23,13 @@ type TopPassword struct {
 	Count    int    `json:"count"`
 }
 
-// --- NEW: Struct for our time-series data ---
+// --- NEW ---
+// TopUsername struct will hold the result of our top usernames query
+type TopUsername struct {
+	Username string `json:"username"`
+	Count    int    `json:"count"`
+}
+
 // DailyAttackStat struct will hold the result of our attacks-by-day query
 type DailyAttackStat struct {
 	Date      string `json:"date"`
@@ -31,7 +37,7 @@ type DailyAttackStat struct {
 	Failures  int    `json:"failures"`
 }
 
-// getTopPasswords handler function remains the same
+// getTopPasswords is our handler function for the top passwords endpoint.
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
@@ -41,6 +47,7 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
+
 		passwords := []TopPassword{}
 		for rows.Next() {
 			var p TopPassword
@@ -54,7 +61,32 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// --- NEW: Handler function for attacks by day ---
+// --- NEW ---
+// getTopUsernames is our new handler for the top usernames endpoint.
+func getTopUsernames(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 10;`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		usernames := []TopUsername{}
+		for rows.Next() {
+			var u TopUsername
+			if err := rows.Scan(&u.Username, &u.Count); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			usernames = append(usernames, u)
+		}
+		c.JSON(http.StatusOK, usernames)
+	}
+}
+
+// getAttacksByDay is our handler function for the attacks-by-day endpoint.
 func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
@@ -79,12 +111,12 @@ func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 		stats := []DailyAttackStat{}
 		for rows.Next() {
 			var s DailyAttackStat
-			var t time.Time // Use time.Time to scan the DATE from SQL
+			var t time.Time
 			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			s.Date = t.Format("2006-01-02") // Format the date into a "YYYY-MM-DD" string
+			s.Date = t.Format("2006-01-02")
 			stats = append(stats, s)
 		}
 		c.JSON(http.StatusOK, stats)
@@ -116,14 +148,16 @@ func main() {
 	api := router.Group("/api/v1")
 	{
 		api.GET("/top-passwords", getTopPasswords(db))
-		// --- NEW: Register the new route ---
 		api.GET("/attacks-by-day", getAttacksByDay(db))
+		// --- NEW ---
+		api.GET("/top-usernames", getTopUsernames(db))
 	}
 
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
 
+// loadConfig loads the configuration from config.json
 func loadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")
