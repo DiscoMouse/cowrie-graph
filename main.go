@@ -23,11 +23,17 @@ type TopPassword struct {
 	Count    int    `json:"count"`
 }
 
-// --- NEW ---
 // TopUsername struct will hold the result of our top usernames query
 type TopUsername struct {
 	Username string `json:"username"`
 	Count    int    `json:"count"`
+}
+
+// --- NEW ---
+// TopIP struct will hold the result of our top IPs query
+type TopIP struct {
+	IP    string `json:"ip"`
+	Count int    `json:"count"`
 }
 
 // DailyAttackStat struct will hold the result of our attacks-by-day query
@@ -61,8 +67,7 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// --- NEW ---
-// getTopUsernames is our new handler for the top usernames endpoint.
+// getTopUsernames is our handler for the top usernames endpoint.
 func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 10;`
@@ -83,6 +88,31 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 			usernames = append(usernames, u)
 		}
 		c.JSON(http.StatusOK, usernames)
+	}
+}
+
+// --- NEW ---
+// getTopIPs is our handler for the top attacking IPs endpoint.
+func getTopIPs(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip ORDER BY count DESC LIMIT 10;`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		ips := []TopIP{}
+		for rows.Next() {
+			var i TopIP
+			if err := rows.Scan(&i.IP, &i.Count); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			ips = append(ips, i)
+		}
+		c.JSON(http.StatusOK, ips)
 	}
 }
 
@@ -149,8 +179,9 @@ func main() {
 	{
 		api.GET("/top-passwords", getTopPasswords(db))
 		api.GET("/attacks-by-day", getAttacksByDay(db))
-		// --- NEW ---
 		api.GET("/top-usernames", getTopUsernames(db))
+		// --- NEW ---
+		api.GET("/top-ips", getTopIPs(db))
 	}
 
 	log.Println("Starting Gin server on :8080")
