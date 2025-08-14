@@ -12,43 +12,33 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Config struct to hold our configuration
+// Config struct and other data structs remain the same...
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
 }
-
-// TopPassword struct will hold the result of our top passwords query
 type TopPassword struct {
 	Password string `json:"password"`
 	Count    int    `json:"count"`
 }
-
-// TopUsername struct will hold the result of our top usernames query
 type TopUsername struct {
 	Username string `json:"username"`
 	Count    int    `json:"count"`
 }
-
-// TopIP struct will hold the result of our top IPs query
 type TopIP struct {
 	IP    string `json:"ip"`
 	Count int    `json:"count"`
 }
-
-// --- NEW ---
-// TopClient struct will hold the result of our top clients query
 type TopClient struct {
 	Version string `json:"version"`
 	Count   int    `json:"count"`
 }
-
-// DailyAttackStat struct will hold the result of our attacks-by-day query
 type DailyAttackStat struct {
 	Date      string `json:"date"`
 	Successes int    `json:"successes"`
 	Failures  int    `json:"failures"`
 }
 
+// API Handlers...
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
@@ -58,6 +48,7 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
+
 		passwords := []TopPassword{}
 		for rows.Next() {
 			var p TopPassword
@@ -70,7 +61,6 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, passwords)
 	}
 }
-
 func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 10;`
@@ -80,6 +70,7 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
+
 		usernames := []TopUsername{}
 		for rows.Next() {
 			var u TopUsername
@@ -92,7 +83,6 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, usernames)
 	}
 }
-
 func getTopIPs(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip ORDER BY count DESC LIMIT 10;`
@@ -102,6 +92,7 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
+
 		ips := []TopIP{}
 		for rows.Next() {
 			var i TopIP
@@ -114,9 +105,6 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, ips)
 	}
 }
-
-// --- NEW ---
-// getTopClients is our handler for the top SSH clients endpoint.
 func getTopClients(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
@@ -152,20 +140,11 @@ func getTopClients(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, clients)
 	}
 }
-
 func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
-			SELECT
-				DATE(timestamp) AS attack_date,
-				SUM(success) AS successful_logins,
-				COUNT(*) - SUM(success) AS failed_logins
-			FROM
-				auth
-			GROUP BY
-				attack_date
-			ORDER BY
-				attack_date ASC;
+			SELECT DATE(timestamp) AS attack_date, SUM(success), COUNT(*) - SUM(success)
+			FROM auth GROUP BY attack_date ORDER BY attack_date ASC;
 		`
 		rows, err := db.Query(query)
 		if err != nil {
@@ -173,7 +152,6 @@ func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		stats := []DailyAttackStat{}
 		for rows.Next() {
 			var s DailyAttackStat
@@ -188,19 +166,99 @@ func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, stats)
 	}
 }
+func getAttacksByHour(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00') AS attack_hour, SUM(success), COUNT(*) - SUM(success)
+			FROM auth GROUP BY attack_hour ORDER BY attack_hour ASC;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+		stats := []DailyAttackStat{}
+		for rows.Next() {
+			var s DailyAttackStat
+			var t time.Time
+			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			s.Date = t.Format("2006-01-02 15:04")
+			stats = append(stats, s)
+		}
+		c.JSON(http.StatusOK, stats)
+	}
+}
+
+// --- NEW ---
+func getAttacksByMonth(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT DATE_FORMAT(timestamp, '%Y-%m-01') AS attack_month, SUM(success), COUNT(*) - SUM(success)
+			FROM auth GROUP BY attack_month ORDER BY attack_month ASC;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+		stats := []DailyAttackStat{}
+		for rows.Next() {
+			var s DailyAttackStat
+			var t time.Time
+			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			s.Date = t.Format("2006-01") // Format as YYYY-MM
+			stats = append(stats, s)
+		}
+		c.JSON(http.StatusOK, stats)
+	}
+}
+
+// --- NEW ---
+func getAttacksByYear(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		query := `
+			SELECT DATE_FORMAT(timestamp, '%Y-01-01') AS attack_year, SUM(success), COUNT(*) - SUM(success)
+			FROM auth GROUP BY attack_year ORDER BY attack_year ASC;
+		`
+		rows, err := db.Query(query)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+		stats := []DailyAttackStat{}
+		for rows.Next() {
+			var s DailyAttackStat
+			var t time.Time
+			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			s.Date = t.Format("2006") // Format as YYYY
+			stats = append(stats, s)
+		}
+		c.JSON(http.StatusOK, stats)
+	}
+}
 
 func main() {
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
-
 	db, err := sql.Open("mysql", config.DatabaseDSN)
 	if err != nil {
 		log.Fatal("Failed to open database connection: ", err)
 	}
 	defer db.Close()
-
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
@@ -208,23 +266,43 @@ func main() {
 	log.Println("Successfully connected to the database!")
 
 	router := gin.Default()
-	router.StaticFile("/", "./static/index.html")
+	router.GET("/", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/dashboard") })
+	router.GET("/dashboard", func(c *gin.Context) { c.File("./static/dashboard.html") })
 
-	// API Routes
+	charts := router.Group("/charts")
+	{
+		// --- MODIFIED ---
+		charts.GET("/attacks-by-day", func(c *gin.Context) {
+			c.File("./static/charts/attacks-by-day.html")
+		})
+		charts.GET("/attacks-by-hour", func(c *gin.Context) {
+			c.File("./static/charts/attacks-by-hour.html")
+		})
+		// --- NEW ---
+		charts.GET("/attacks-by-month", func(c *gin.Context) {
+			c.File("./static/charts/attacks-by-month.html")
+		})
+		charts.GET("/attacks-by-year", func(c *gin.Context) {
+			c.File("./static/charts/attacks-by-year.html")
+		})
+	}
+
 	api := router.Group("/api/v1")
 	{
 		api.GET("/top-passwords", getTopPasswords(db))
 		api.GET("/attacks-by-day", getAttacksByDay(db))
 		api.GET("/top-usernames", getTopUsernames(db))
 		api.GET("/top-ips", getTopIPs(db))
-		// --- NEW ---
 		api.GET("/top-clients", getTopClients(db))
+		api.GET("/attacks-by-hour", getAttacksByHour(db))
+		// --- NEW ---
+		api.GET("/attacks-by-month", getAttacksByMonth(db))
+		api.GET("/attacks-by-year", getAttacksByYear(db))
 	}
 
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
-
 func loadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")

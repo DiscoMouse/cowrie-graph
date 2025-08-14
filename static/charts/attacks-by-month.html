@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attacks By Month - Cowrie-Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style> /* ... CSS styles ... */ </style>
+</head>
+<body>
+    <a href="/dashboard" class="nav-link">&larr; Back to Dashboard</a>
+    <div class="chart-box">
+        <div id="chart" style="width: 100%; height:600px;"></div>
+    </div>
+    <script type="text/javascript">
+      var chart = echarts.init(document.getElementById('chart'));
+      chart.showLoading();
+      fetch('/api/v1/attacks-by-month')
+        .then(response => response.json())
+        .then(data => {
+          chart.hideLoading();
+          var option = {
+            title: { text: 'Attacks By Month' },
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: data.map(item => item.date) },
+            yAxis: { type: 'value' },
+            series: [
+              { name: 'Failures', type: 'bar', stack: 'Total', data: data.map(item => item.failures), color: '#c23531' },
+              { name: 'Successes', type: 'bar', stack: 'Total', data: data.map(item => item.successes), color: '#2f4554' }
+            ]
+          };
+          chart.setOption(option);
+        });
+      window.addEventListener('resize', function() { chart.resize(); });
+    </script>
+</body>
+</html>
