@@ -12,7 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Config struct and other data structs remain the same...
+// Structs
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
 }
@@ -38,7 +38,7 @@ type DailyAttackStat struct {
 	Failures  int    `json:"failures"`
 }
 
-// API Handlers...
+// API Handlers
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
@@ -48,7 +48,6 @@ func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		passwords := []TopPassword{}
 		for rows.Next() {
 			var p TopPassword
@@ -70,7 +69,6 @@ func getTopUsernames(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		usernames := []TopUsername{}
 		for rows.Next() {
 			var u TopUsername
@@ -92,7 +90,6 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		ips := []TopIP{}
 		for rows.Next() {
 			var i TopIP
@@ -108,18 +105,9 @@ func getTopIPs(db *sql.DB) gin.HandlerFunc {
 func getTopClients(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
-			SELECT
-				c.version,
-				COUNT(s.id) as count
-			FROM
-				sessions s
-			JOIN
-				clients c ON s.client = c.id
-			GROUP BY
-				c.version
-			ORDER BY
-				count DESC
-			LIMIT 10;
+			SELECT c.version, COUNT(s.id) as count FROM sessions s
+			JOIN clients c ON s.client = c.id
+			GROUP BY c.version ORDER BY count DESC LIMIT 10;
 		`
 		rows, err := db.Query(query)
 		if err != nil {
@@ -127,7 +115,6 @@ func getTopClients(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		clients := []TopClient{}
 		for rows.Next() {
 			var cl TopClient
@@ -166,34 +153,6 @@ func getAttacksByDay(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, stats)
 	}
 }
-func getAttacksByHour(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query := `
-			SELECT DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00') AS attack_hour, SUM(success), COUNT(*) - SUM(success)
-			FROM auth GROUP BY attack_hour ORDER BY attack_hour ASC;
-		`
-		rows, err := db.Query(query)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		defer rows.Close()
-		stats := []DailyAttackStat{}
-		for rows.Next() {
-			var s DailyAttackStat
-			var t time.Time
-			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			s.Date = t.Format("2006-01-02 15:04")
-			stats = append(stats, s)
-		}
-		c.JSON(http.StatusOK, stats)
-	}
-}
-
-// --- NEW ---
 func getAttacksByMonth(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
@@ -214,41 +173,14 @@ func getAttacksByMonth(db *sql.DB) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			s.Date = t.Format("2006-01") // Format as YYYY-MM
+			s.Date = t.Format("2006-01")
 			stats = append(stats, s)
 		}
 		c.JSON(http.StatusOK, stats)
 	}
 }
 
-// --- NEW ---
-func getAttacksByYear(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		query := `
-			SELECT DATE_FORMAT(timestamp, '%Y-01-01') AS attack_year, SUM(success), COUNT(*) - SUM(success)
-			FROM auth GROUP BY attack_year ORDER BY attack_year ASC;
-		`
-		rows, err := db.Query(query)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		defer rows.Close()
-		stats := []DailyAttackStat{}
-		for rows.Next() {
-			var s DailyAttackStat
-			var t time.Time
-			if err := rows.Scan(&t, &s.Successes, &s.Failures); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			s.Date = t.Format("2006") // Format as YYYY
-			stats = append(stats, s)
-		}
-		c.JSON(http.StatusOK, stats)
-	}
-}
-
+// main function
 func main() {
 	config, err := loadConfig()
 	if err != nil {
@@ -268,22 +200,13 @@ func main() {
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/dashboard") })
 	router.GET("/dashboard", func(c *gin.Context) { c.File("./static/dashboard.html") })
-
 	charts := router.Group("/charts")
 	{
-		// --- MODIFIED ---
 		charts.GET("/attacks-by-day", func(c *gin.Context) {
 			c.File("./static/charts/attacks-by-day.html")
 		})
-		charts.GET("/attacks-by-hour", func(c *gin.Context) {
-			c.File("./static/charts/attacks-by-hour.html")
-		})
-		// --- NEW ---
 		charts.GET("/attacks-by-month", func(c *gin.Context) {
 			c.File("./static/charts/attacks-by-month.html")
-		})
-		charts.GET("/attacks-by-year", func(c *gin.Context) {
-			c.File("./static/charts/attacks-by-year.html")
 		})
 	}
 
@@ -294,15 +217,14 @@ func main() {
 		api.GET("/top-usernames", getTopUsernames(db))
 		api.GET("/top-ips", getTopIPs(db))
 		api.GET("/top-clients", getTopClients(db))
-		api.GET("/attacks-by-hour", getAttacksByHour(db))
-		// --- NEW ---
 		api.GET("/attacks-by-month", getAttacksByMonth(db))
-		api.GET("/attacks-by-year", getAttacksByYear(db))
 	}
 
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
+
+// loadConfig function
 func loadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")

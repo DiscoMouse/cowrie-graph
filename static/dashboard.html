@@ -27,7 +27,6 @@
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
-        /* --- NEW: Style for the navigation sections --- */
         .nav-section {
             background-color: #ffffff;
             padding: 20px;
@@ -48,7 +47,7 @@
         }
         .nav-list li {
             border: 1px solid #ddd;
-            margin-top: -1px; /* Creates a stacked look */
+            margin-top: -1px;
         }
         .nav-list li:first-child {
             border-top-left-radius: 6px;
@@ -74,10 +73,13 @@
 <body>
     <div class="container">
         <h1>Cowrie-Graph Dashboard 🧭</h1>
-
         <section class="nav-section">
             <h2>Time-Series Reports</h2>
             <ul class="nav-list">
-                <li><a href="/charts/attacks-by-hour">Attacks Over Time (Hourly)</a></li>
                 <li><a href="/charts/attacks-by-day">Attacks Over Time (Daily)</a></li>
-                <li><a href="/charts/attacks
+                <li><a href="/charts/attacks-by-month">Attacks Over Time (Monthly)</a></li>
+            </ul>
+        </section>
+    </div>
+</body>
+</html>
