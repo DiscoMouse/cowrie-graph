@@ -26,33 +26,21 @@
                 <li><a href="/charts/attacks-by-month">Attacks Over Time (Monthly)</a></li>
             </ul>
         </section>
+
+        <section class="nav-section">
+            <h2>Top 10 Statistics</h2>
+            <ul class="nav-list">
+                <li><a href="/charts/top-10s">View Top 10 Charts</a></li>
+            </ul>
+        </section>
     </div>
 
     <script>
         const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
-        
-        function setTheme(theme) {
-            if (theme === 'dark') {
-                document.body.classList.add('dark-mode');
-                toggleSwitch.checked = true;
-            } else {
-                document.body.classList.remove('dark-mode');
-                toggleSwitch.checked = false;
-            }
-        }
-        
-        // --- MODIFIED: Default to dark mode if no theme is saved ---
         const currentTheme = localStorage.getItem('theme') || 'dark';
-        setTheme(currentTheme);
-
-        toggleSwitch.addEventListener('change', function(e) {
-            let theme = 'light';
-            if (e.target.checked) {
-                theme = 'dark';
-            }
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', theme);
-        });
+        function setTheme(theme) { if (theme === 'dark') { document.body.classList.add('dark-mode'); toggleSwitch.checked = true; } else { document.body.classList.remove('dark-mode'); toggleSwitch.checked = false; } }
+        if (currentTheme) { setTheme(currentTheme); }
+        toggleSwitch.addEventListener('change', function(e) { let theme = 'light'; if (e.target.checked) { theme = 'dark'; } document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', theme); });
     </script>
 </body>
 </html>
