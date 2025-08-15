@@ -14,6 +14,35 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 
 ---
 
+## 🚀 Installation & Setup
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone [https://github.com/DiscoMouse/cowrie-graph.git](https://github.com/DiscoMouse/cowrie-graph.git)
+    cd cowrie-graph
+    ```
+
+2.  **GeoIP Database (Manual Step):** This project uses the free MaxMind GeoLite2 City database for IP geolocation. Due to licensing, you must download this yourself.
+    * Sign up for a free [MaxMind GeoLite2 account](https://www.maxmind.com/en/geolite2/signup).
+    * Log in and navigate to "Download Databases".
+    * Download the **"GeoLite2 City"** database in the **`GeoIP2 / MMDB`** format.
+    * Extract the archive and place the `GeoLite2-City.mmdb` file in the root of this project directory.
+
+3.  **Configuration:**
+    * Copy the example configuration file:
+        ```bash
+        cp config.example.json config.json
+        ```
+    * Edit `config.json` and enter your MySQL database connection details. Ensure the `geo_db_path` points to your `.mmdb` file.
+
+4.  **Run the Application:**
+    ```bash
+    go run ./cmd/web
+    ```
+    The server will start on `http://localhost:8080`. The first time it runs, it will automatically create the `ip_intelligence` table in your database.
+
+---
+
 ## ✅ Current Features
 
 * **Multi-Page Dashboard:** A clean, responsive UI with separate, detailed pages for different data views.

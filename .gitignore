@@ -36,3 +36,6 @@ config.json
 
 # Compiled Go binary
 cowrie-graph
+
+# MaxMind GeoIP database files
+*.mmdb
