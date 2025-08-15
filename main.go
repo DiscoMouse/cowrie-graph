@@ -12,7 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Structs
+// Structs and Handlers remain the same...
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
 }
@@ -38,7 +38,6 @@ type DailyAttackStat struct {
 	Failures  int    `json:"failures"`
 }
 
-// API Handlers
 func getTopPasswords(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
@@ -180,7 +179,6 @@ func getAttacksByMonth(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// main function
 func main() {
 	config, err := loadConfig()
 	if err != nil {
@@ -198,6 +196,11 @@ func main() {
 	log.Println("Successfully connected to the database!")
 
 	router := gin.Default()
+
+	// --- NEW: Serve the entire static directory ---
+	router.Static("/static", "./static")
+
+	// Page routing
 	router.GET("/", func(c *gin.Context) { c.Redirect(http.StatusMovedPermanently, "/dashboard") })
 	router.GET("/dashboard", func(c *gin.Context) { c.File("./static/dashboard.html") })
 	charts := router.Group("/charts")
@@ -210,6 +213,7 @@ func main() {
 		})
 	}
 
+	// API Routes (unchanged)
 	api := router.Group("/api/v1")
 	{
 		api.GET("/top-passwords", getTopPasswords(db))
@@ -223,8 +227,6 @@ func main() {
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
-
-// loadConfig function
 func loadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")
