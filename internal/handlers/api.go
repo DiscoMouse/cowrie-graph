@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/DiscoMouse/cowrie-graph/internal/database"
@@ -17,9 +18,43 @@ func NewAPIHandler(store *database.Store) *APIHandler {
 	return &APIHandler{Store: store}
 }
 
-// These are our new, clean handlers.
-// They just call a method on the store and return the result.
+// --- NEW: Handler for the world map data ---
+func (h *APIHandler) GetAttacksByLocation(c *gin.Context) {
+	// 1. Get all unique IPs and their counts
+	ipCounts, err := h.Store.GetIPCounts()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve IP counts"})
+		return
+	}
 
+	var locations []database.LocationStat
+
+	// 2. For each IP, get its enriched data from our cache
+	for ip, count := range ipCounts {
+		intel, err := h.Store.GetOrEnrichIP(ip)
+		if err != nil {
+			// Log the error but continue; don't let one bad IP stop the whole process
+			log.Printf("Could not enrich IP %s: %v", ip, err)
+			continue
+		}
+
+		// 3. If it has coordinates, add it to our result list
+		if intel != nil && intel.Latitude.Valid && intel.Longitude.Valid {
+			locations = append(locations, database.LocationStat{
+				IP:          ip,
+				CountryCode: intel.CountryCode.String,
+				City:        intel.City.String,
+				Latitude:    intel.Latitude.Float64,
+				Longitude:   intel.Longitude.Float64,
+				Count:       count,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, locations)
+}
+
+// (Other handlers remain the same)
 func (h *APIHandler) GetTopPasswords(c *gin.Context) {
 	data, err := h.Store.GetTopPasswords()
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 // Config struct to hold our configuration
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
+	GeoDBPath   string `json:"geo_db_path"` // <-- ADD THIS LINE
 }
 
 // LoadConfig reads the configuration from config.json

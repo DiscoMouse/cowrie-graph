@@ -12,13 +12,11 @@ import (
 )
 
 func main() {
-	// 1. Load Config
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// 2. Connect to DB
 	db, err := sql.Open("mysql", cfg.DatabaseDSN)
 	if err != nil {
 		log.Fatal("Failed to open database connection: ", err)
@@ -29,11 +27,19 @@ func main() {
 	}
 	log.Println("Successfully connected to the database!")
 
-	// 3. Create our application components
-	store := database.NewStore(db)
+	store, err := database.NewStore(db, cfg.GeoDBPath)
+	if err != nil {
+		log.Fatalf("Failed to create database store: %v", err)
+	}
+	log.Println("GeoIP database loaded successfully.")
+
+	if err := store.CreateIntelligenceTable(); err != nil {
+		log.Fatalf("Failed to run database migration: %v", err)
+	}
+	log.Println("Database migration successful.")
+
 	apiHandler := handlers.NewAPIHandler(store)
 
-	// 4. Set up router and routes
 	router := gin.Default()
 	router.Static("/static", "./static")
 
@@ -54,9 +60,10 @@ func main() {
 		api.GET("/top-ips", apiHandler.GetTopIPs)
 		api.GET("/top-clients", apiHandler.GetTopClients)
 		api.GET("/attacks-by-month", apiHandler.GetAttacksByMonth)
+		// --- NEW: The route for our world map data ---
+		api.GET("/attacks-by-location", apiHandler.GetAttacksByLocation)
 	}
 
-	// 5. Start server
 	log.Println("Starting Gin server on :8080")
 	router.Run(":8080")
 }
