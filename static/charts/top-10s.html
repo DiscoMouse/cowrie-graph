@@ -35,65 +35,6 @@
         </div>
     </div>
     
-    <script type="text/javascript">
-      // Theme switcher logic
-      const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
-      let currentTheme = localStorage.getItem('theme') || 'dark';
-
-      // Chart instances
-      const charts = {
-          topPasswords: echarts.init(document.getElementById('topPasswordsChart'), currentTheme),
-          topUsernames: echarts.init(document.getElementById('topUsernamesChart'), currentTheme),
-          topIPs: echarts.init(document.getElementById('topIPsChart'), currentTheme),
-          topClients: echarts.init(document.getElementById('topClientsChart'), currentTheme)
-      };
-
-      // Helper for bar chart options
-      function createBarChartOption(title, yAxisData, seriesData, seriesName, theme) {
-        return {
-          title: { text: title, textStyle: { color: theme === 'dark' ? '#fff' : '#333' } },
-          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-          grid: { left: '25%', containLabel: true },
-          xAxis: { type: 'value' },
-          yAxis: { type: 'category', data: yAxisData.reverse() },
-          series: [{ name: seriesName, type: 'bar', data: seriesData.reverse() }]
-        };
-      }
-
-      // --- Data Fetching and Rendering ---
-      function renderCharts(theme) {
-          fetch('/api/v1/top-passwords').then(r => r.json()).then(data => { charts.topPasswords.setOption(createBarChartOption('Top Passwords', data.map(i => i.password), data.map(i => i.count), 'Attempts', theme)); });
-          fetch('/api/v1/top-usernames').then(r => r.json()).then(data => { charts.topUsernames.setOption(createBarChartOption('Top Usernames', data.map(i => i.username), data.map(i => i.count), 'Attempts', theme)); });
-          fetch('/api/v1/top-ips').then(r => r.json()).then(data => { charts.topIPs.setOption(createBarChartOption('Top Attacker IPs', data.map(i => i.ip), data.map(i => i.count), 'Sessions', theme)); });
-          fetch('/api/v1/top-clients').then(r => r.json()).then(data => { charts.topClients.setOption(createBarChartOption('Top SSH Clients', data.map(i => i.version), data.map(i => i.count), 'Sessions', theme)); });
-      }
-
-      function setTheme(theme) {
-            if (theme === 'dark') {
-                document.body.classList.add('dark-mode');
-                toggleSwitch.checked = true;
-            } else {
-                document.body.classList.remove('dark-mode');
-                toggleSwitch.checked = false;
-            }
-            // Re-render charts with the correct theme
-            Object.values(charts).forEach(chart => chart.dispose());
-            charts.topPasswords = echarts.init(document.getElementById('topPasswordsChart'), theme);
-            charts.topUsernames = echarts.init(document.getElementById('topUsernamesChart'), theme);
-            charts.topIPs = echarts.init(document.getElementById('topIPsChart'), theme);
-            charts.topClients = echarts.init(document.getElementById('topClientsChart'), theme);
-            renderCharts(theme);
-      }
-      
-      setTheme(currentTheme);
-
-      toggleSwitch.addEventListener('change', function(e) {
-            currentTheme = e.target.checked ? 'dark' : 'light';
-            localStorage.setItem('theme', currentTheme);
-            setTheme(currentTheme);
-      });
-      
-      window.addEventListener('resize', () => Object.values(charts).forEach(chart => chart.resize()));
-    </script>
+    <script src="/static/js/top-10s.js" defer></script>
 </body>
 </html>

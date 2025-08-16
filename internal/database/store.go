@@ -101,7 +101,7 @@ func (s *Store) GetTopCountries() ([]TopCountry, error) {
 		SELECT ii.country_code, COUNT(s.id) as count FROM sessions s
 		JOIN ip_intelligence ii ON s.ip = ii.ip
 		WHERE ii.country_code IS NOT NULL AND ii.country_code != ''
-		GROUP BY ii.country_code ORDER BY count DESC LIMIT 10;
+		GROUP BY ii.country_code ORDER BY count DESC LIMIT 20;
 	`
 	rows, err := s.DB.Query(query)
 	if err != nil {
@@ -124,7 +124,7 @@ func (s *Store) GetTopCities() ([]TopCity, error) {
 		SELECT ii.city, COUNT(s.id) as count FROM sessions s
 		JOIN ip_intelligence ii ON s.ip = ii.ip
 		WHERE ii.city IS NOT NULL AND ii.city != ''
-		GROUP BY ii.city ORDER BY count DESC LIMIT 10;
+		GROUP BY ii.city ORDER BY count DESC LIMIT 20;
 	`
 	rows, err := s.DB.Query(query)
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *Store) GetTopOrgs() ([]TopOrg, error) {
 		SELECT ii.organization, COUNT(s.id) as count FROM sessions s
 		JOIN ip_intelligence ii ON s.ip = ii.ip
 		WHERE ii.organization IS NOT NULL AND ii.organization != ''
-		GROUP BY ii.organization ORDER BY count DESC LIMIT 10;
+		GROUP BY ii.organization ORDER BY count DESC LIMIT 20;
 	`
 	rows, err := s.DB.Query(query)
 	if err != nil {
@@ -269,7 +269,7 @@ func (s *Store) CreateIntelligenceTable() error {
 }
 
 func (s *Store) GetTopPasswords() ([]TopPassword, error) {
-	query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
+	query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 20;`
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -287,7 +287,7 @@ func (s *Store) GetTopPasswords() ([]TopPassword, error) {
 	return passwords, nil
 }
 func (s *Store) GetTopUsernames() ([]TopUsername, error) {
-	query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 10;`
+	query := `SELECT username, COUNT(*) as count FROM auth GROUP BY username ORDER BY count DESC LIMIT 20;`
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func (s *Store) GetTopUsernames() ([]TopUsername, error) {
 	return usernames, nil
 }
 func (s *Store) GetTopIPs() ([]TopIP, error) {
-	query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip ORDER BY count DESC LIMIT 10;`
+	query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip ORDER BY count DESC LIMIT 20;`
 	rows, err := s.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -326,7 +326,7 @@ func (s *Store) GetTopClients() ([]TopClient, error) {
 	query := `
 		SELECT c.version, COUNT(s.id) as count FROM sessions s
 		JOIN clients c ON s.client = c.id
-		GROUP BY c.version ORDER BY count DESC LIMIT 10;
+		GROUP BY c.version ORDER BY count DESC LIMIT 20;
 	`
 	rows, err := s.DB.Query(query)
 	if err != nil {
