@@ -37,11 +37,21 @@
             chart.showLoading();
 
             fetch('/api/v1/attacks-by-location')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     chart.hideLoading();
 
-                    // Transform API data into the format ECharts needs for the map
+                    if (!data || data.length === 0) {
+                        chart.setOption({ title: { text: 'No location data available', left: 'center', top: 'center', textStyle: { color: theme === 'dark' ? '#fff' : '#333' } } });
+                        return;
+                    }
+
+                    // Transform API data into the format ECharts needs for the map series
                     const mapData = data.map(item => ({
                         name: item.city || item.country_code, // Use city name or country code as the label
                         value: [item.longitude, item.latitude, item.count] // [lon, lat, value]
@@ -52,19 +62,18 @@
                         tooltip: {
                             trigger: 'item',
                             formatter: function (params) {
-                                // Custom tooltip format
+                                if (!params.value) return params.name;
                                 return `${params.name}<br/>Sessions: ${params.value[2]}`;
                             }
                         },
                         visualMap: {
                             min: 1,
-                            max: Math.max(...mapData.map(item => item.value[2])), // Set max to highest attack count
+                            max: Math.max(1, ...mapData.map(item => item.value[2])),
                             left: 'left',
                             top: 'bottom',
                             text: ['High', 'Low'],
                             calculable: true,
                             inRange: {
-                                // Color dots from blue to red based on attack count
                                 color: ['#5291FF', '#E06343', '#B80909']
                             },
                             textStyle: { color: theme === 'dark' ? '#fff' : '#333' }
@@ -89,23 +98,20 @@
                                 data: mapData,
                                 symbolSize: function (val) {
                                     // Scale dot size based on attack count
-                                    return Math.max(5, Math.log2(val[2]) * 3);
+                                    return val ? Math.max(5, Math.log2(val[2]) * 3) : 0;
                                 },
                                 encode: {
                                     value: 2
                                 },
-                                label: {
-                                    formatter: '{b}',
-                                    position: 'right',
-                                    show: false
-                                },
-                                emphasis: {
-                                    label: { show: true }
-                                }
                             }
                         ]
                     };
                     chart.setOption(option);
+                })
+                .catch(error => {
+                    chart.hideLoading();
+                    console.error("Error fetching or processing data:", error);
+                    chart.setOption({ title: { text: 'Failed to load map data', subtext: 'Check console for details.', left: 'center', top: 'center', textStyle: { color: theme === 'dark' ? '#fff' : '#333' } } });
                 });
       }
 
