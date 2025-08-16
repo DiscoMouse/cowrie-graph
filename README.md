@@ -18,7 +18,7 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/DiscoMouse/cowrie-graph.git
+    git clone [https://github.com/DiscoMouse/cowrie-graph.git](https://github.com/DiscoMouse/cowrie-graph.git)
     cd cowrie-graph
     ```
 
@@ -47,24 +47,24 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 
 * **Multi-Page Dashboard:** A clean, responsive UI with separate, detailed pages for different data views.
 * **Light/Dark Mode:** A theme toggle with the user's preference saved in their browser.
-* **Time-Series Charts:** Interactive, zoomable charts for daily and monthly attack trends.
-* **Top 10 Statistics:** A dedicated page with bar charts for:
-    * Most common passwords
-    * Most common usernames
-    * Top attacking IP addresses
-    * Most common SSH client versions
 * **Secure API Backend:** All data is served via a secure, API-driven backend written in Go using the Gin framework.
 * **Organized Codebase:** The backend logic is organized into a clean, package-based architecture.
+* **Data Enrichment & Geo-Intelligence:**
+    * Automatic GeoIP lookup for attacker IPs using a local MaxMind GeoLite2 database.
+    * An internal caching system (`ip_intelligence` table) to prevent redundant lookups.
+* **Time-Series Charts:** Interactive, zoomable charts for daily and monthly attack trends.
+* **Top 10 Statistics Pages:**
+    * A dedicated page for attack vectors (Passwords, Usernames, IPs, SSH Clients).
+    * A dedicated page for Geo-statistics (Countries, Cities, ISPs/Organizations).
 
 ---
 
 ## 🗺️ Roadmap (Planned Features)
 
-* **Data Enrichment:** A service to add more context to attacker IPs.
-    * [ ] Local, cached GeoIP and ASN lookups.
-    * [ ] TOR exit node detection.
 * **Geospatial Analysis:**
     * [ ] World map visualization of attacker origins.
+* **Advanced Data Enrichment:**
+    * [ ] TOR exit node detection.
 * **Security & Operations:**
     * [ ] User authentication to protect the dashboard.
     * [ ] Full containerization with Docker for easy deployment.
