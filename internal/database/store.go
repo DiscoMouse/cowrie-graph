@@ -11,7 +11,21 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-// --- ADD THIS NEW STRUCT ---
+// --- NEW DATA STRUCTS ---
+type TopCountry struct {
+	CountryCode string `json:"country_code"`
+	Count       int    `json:"count"`
+}
+type TopCity struct {
+	City  string `json:"city"`
+	Count int    `json:"count"`
+}
+type TopOrg struct {
+	Organization string `json:"organization"`
+	Count        int    `json:"count"`
+}
+
+// (Other structs remain the same)
 type LocationStat struct {
 	IP          string  `json:"ip"`
 	CountryCode string  `json:"country_code"`
@@ -20,8 +34,6 @@ type LocationStat struct {
 	Longitude   float64 `json:"longitude"`
 	Count       int     `json:"count"`
 }
-
-// (Other structs remain the same)
 type TopPassword struct {
 	Password string `json:"password"`
 	Count    int    `json:"count"`
@@ -83,7 +95,77 @@ func NewStore(db *sql.DB, geoDBPath string) (*Store, error) {
 	}, nil
 }
 
-// --- ADD THIS NEW METHOD ---
+// --- NEW DATABASE METHODS ---
+func (s *Store) GetTopCountries() ([]TopCountry, error) {
+	query := `
+		SELECT ii.country_code, COUNT(s.id) as count FROM sessions s
+		JOIN ip_intelligence ii ON s.ip = ii.ip
+		WHERE ii.country_code IS NOT NULL AND ii.country_code != ''
+		GROUP BY ii.country_code ORDER BY count DESC LIMIT 10;
+	`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopCountry
+	for rows.Next() {
+		var item TopCountry
+		if err := rows.Scan(&item.CountryCode, &item.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (s *Store) GetTopCities() ([]TopCity, error) {
+	query := `
+		SELECT ii.city, COUNT(s.id) as count FROM sessions s
+		JOIN ip_intelligence ii ON s.ip = ii.ip
+		WHERE ii.city IS NOT NULL AND ii.city != ''
+		GROUP BY ii.city ORDER BY count DESC LIMIT 10;
+	`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopCity
+	for rows.Next() {
+		var item TopCity
+		if err := rows.Scan(&item.City, &item.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func (s *Store) GetTopOrgs() ([]TopOrg, error) {
+	query := `
+		SELECT ii.organization, COUNT(s.id) as count FROM sessions s
+		JOIN ip_intelligence ii ON s.ip = ii.ip
+		WHERE ii.organization IS NOT NULL AND ii.organization != ''
+		GROUP BY ii.organization ORDER BY count DESC LIMIT 10;
+	`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopOrg
+	for rows.Next() {
+		var item TopOrg
+		if err := rows.Scan(&item.Organization, &item.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+// (Other methods remain the same)
 func (s *Store) GetIPCounts() (map[string]int, error) {
 	query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip;`
 	rows, err := s.DB.Query(query)
@@ -104,11 +186,10 @@ func (s *Store) GetIPCounts() (map[string]int, error) {
 	return ipCounts, nil
 }
 
-// (Other methods remain the same)
 func (s *Store) GetOrEnrichIP(ipString string) (*IPIntelligence, error) {
 	intel := &IPIntelligence{IP: ipString}
-	query := "SELECT country_code, city, latitude, longitude, is_tor FROM ip_intelligence WHERE ip = ?"
-	err := s.DB.QueryRow(query, ipString).Scan(&intel.CountryCode, &intel.City, &intel.Latitude, &intel.Longitude, &intel.IsTor)
+	query := "SELECT country_code, city, latitude, longitude, organization, is_tor FROM ip_intelligence WHERE ip = ?"
+	err := s.DB.QueryRow(query, ipString).Scan(&intel.CountryCode, &intel.City, &intel.Latitude, &intel.Longitude, &intel.Organization, &intel.IsTor)
 	if err == nil {
 		return intel, nil
 	}
@@ -125,8 +206,9 @@ func (s *Store) GetOrEnrichIP(ipString string) (*IPIntelligence, error) {
 		}
 	}
 
-	var countryCode, city sql.NullString
+	var countryCode, city, org sql.NullString
 	var latitude, longitude sql.NullFloat64
+	var asn sql.NullInt64
 	if geoData != nil {
 		if geoData.Country.ISOCode != "" {
 			countryCode = sql.NullString{String: geoData.Country.ISOCode, Valid: true}
@@ -143,11 +225,11 @@ func (s *Store) GetOrEnrichIP(ipString string) (*IPIntelligence, error) {
 	}
 
 	insertQuery := `
-		INSERT INTO ip_intelligence (ip, country_code, city, latitude, longitude)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO ip_intelligence (ip, country_code, city, latitude, longitude, asn, organization)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON DUPLICATE KEY UPDATE ip=ip;
 	`
-	_, err = s.DB.Exec(insertQuery, ipString, countryCode, city, latitude, longitude)
+	_, err = s.DB.Exec(insertQuery, ipString, countryCode, city, latitude, longitude, asn, org)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting into ip_intelligence cache: %w", err)
 	}

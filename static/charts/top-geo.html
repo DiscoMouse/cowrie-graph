@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Top Geo Statistics - Cowrie-Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 1200px;">
+        <div class="header">
+             <a href="/dashboard" style="text-decoration: none; color: var(--link-color); font-weight: 500;">&larr; Back to Dashboard</a>
+            <div class="theme-switch-wrapper">
+                <span class="theme-switch-label">Dark Mode</span>
+                <label class="theme-switch" for="checkbox">
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </div>
+        
+        <div class="chart-grid">
+            <div class="chart-box">
+                <div id="topCountriesChart" style="width: 100%; height:300px;"></div>
+            </div>
+            <div class="chart-box">
+                <div id="topCitiesChart" style="width: 100%; height:300px;"></div>
+            </div>
+            <div class="chart-box">
+                <div id="topOrgsChart" style="width: 100%; height:300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+      const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+      let currentTheme = localStorage.getItem('theme') || 'dark';
+
+      // Chart instances
+      const charts = {
+          topCountries: echarts.init(document.getElementById('topCountriesChart'), currentTheme),
+          topCities: echarts.init(document.getElementById('topCitiesChart'), currentTheme),
+          topOrgs: echarts.init(document.getElementById('topOrgsChart'), currentTheme)
+      };
+
+      // Helper for bar chart options
+      function createBarChartOption(title, yAxisData, seriesData, seriesName, theme) {
+        // Find the maximum value in the data
+        const maxValue = Math.max(...seriesData);
+        // Calculate a new maximum for the axis, adding a 5% buffer and rounding up
+        const axisMax = Math.ceil(maxValue * 1.05);
+        
+        return {
+          title: { text: title, textStyle: { color: theme === 'dark' ? '#fff' : '#333' } },
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+          grid: { left: '25%', containLabel: true },
+          xAxis: { type: 'value', max: axisMax },
+          yAxis: { type: 'category', data: yAxisData.reverse() },
+          series: [{ name: seriesName, type: 'bar', data: seriesData.reverse() }]
+        };
+      }
+
+      // --- Data Fetching and Rendering ---
+      function renderCharts(theme) {
+          fetch('/api/v1/top-countries').then(r => r.json()).then(data => { charts.topCountries.setOption(createBarChartOption('Top Countries', data.map(i => i.country_code), data.map(i => i.count), 'Sessions', theme)); });
+          fetch('/api/v1/top-cities').then(r => r.json()).then(data => { charts.topCities.setOption(createBarChartOption('Top Cities', data.map(i => i.city), data.map(i => i.count), 'Sessions', theme)); });
+          fetch('/api/v1/top-orgs').then(r => r.json()).then(data => { charts.topOrgs.setOption(createBarChartOption('Top ISPs/Orgs', data.map(i => i.organization), data.map(i => i.count), 'Sessions', theme)); });
+      }
+
+      function setTheme(theme) {
+            if (theme === 'dark') { document.body.classList.add('dark-mode'); toggleSwitch.checked = true; } 
+            else { document.body.classList.remove('dark-mode'); toggleSwitch.checked = false; }
+            
+            Object.values(charts).forEach(chart => chart.dispose());
+            charts.topCountries = echarts.init(document.getElementById('topCountriesChart'), theme);
+            charts.topCities = echarts.init(document.getElementById('topCitiesChart'), theme);
+            charts.topOrgs = echarts.init(document.getElementById('topOrgsChart'), theme);
+            renderCharts(theme);
+      }
+      
+      setTheme(currentTheme);
+      toggleSwitch.addEventListener('change', e => { currentTheme = e.target.checked ? 'dark' : 'light'; localStorage.setItem('theme', currentTheme); setTheme(currentTheme); });
+      window.addEventListener('resize', () => Object.values(charts).forEach(chart => chart.resize()));
+    </script>
+</body>
+</html>

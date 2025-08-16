@@ -50,6 +50,11 @@ func main() {
 		charts.GET("/attacks-by-day", func(c *gin.Context) { c.File("./static/charts/attacks-by-day.html") })
 		charts.GET("/attacks-by-month", func(c *gin.Context) { c.File("./static/charts/attacks-by-month.html") })
 		charts.GET("/top-10s", func(c *gin.Context) { c.File("./static/charts/top-10s.html") })
+		charts.GET("/world-map", func(c *gin.Context) { c.File("./static/charts/world-map.html") })
+		// We'll create this page in the next step
+		charts.GET("/top-geo", func(c *gin.Context) {
+			c.File("./static/charts/top-geo.html")
+		})
 	}
 
 	api := router.Group("/api/v1")
@@ -60,8 +65,11 @@ func main() {
 		api.GET("/top-ips", apiHandler.GetTopIPs)
 		api.GET("/top-clients", apiHandler.GetTopClients)
 		api.GET("/attacks-by-month", apiHandler.GetAttacksByMonth)
-		// --- NEW: The route for our world map data ---
 		api.GET("/attacks-by-location", apiHandler.GetAttacksByLocation)
+		// --- NEW ROUTES ---
+		api.GET("/top-countries", apiHandler.GetTopCountries)
+		api.GET("/top-cities", apiHandler.GetTopCities)
+		api.GET("/top-orgs", apiHandler.GetTopOrgs)
 	}
 
 	log.Println("Starting Gin server on :8080")

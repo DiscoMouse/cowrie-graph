@@ -18,27 +18,48 @@ func NewAPIHandler(store *database.Store) *APIHandler {
 	return &APIHandler{Store: store}
 }
 
-// --- NEW: Handler for the world map data ---
+// --- NEW HANDLERS ---
+func (h *APIHandler) GetTopCountries(c *gin.Context) {
+	data, err := h.Store.GetTopCountries()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *APIHandler) GetTopCities(c *gin.Context) {
+	data, err := h.Store.GetTopCities()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *APIHandler) GetTopOrgs(c *gin.Context) {
+	data, err := h.Store.GetTopOrgs()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+// (Other handlers remain the same)
 func (h *APIHandler) GetAttacksByLocation(c *gin.Context) {
-	// 1. Get all unique IPs and their counts
 	ipCounts, err := h.Store.GetIPCounts()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve IP counts"})
 		return
 	}
-
 	var locations []database.LocationStat
-
-	// 2. For each IP, get its enriched data from our cache
 	for ip, count := range ipCounts {
 		intel, err := h.Store.GetOrEnrichIP(ip)
 		if err != nil {
-			// Log the error but continue; don't let one bad IP stop the whole process
 			log.Printf("Could not enrich IP %s: %v", ip, err)
 			continue
 		}
-
-		// 3. If it has coordinates, add it to our result list
 		if intel != nil && intel.Latitude.Valid && intel.Longitude.Valid {
 			locations = append(locations, database.LocationStat{
 				IP:          ip,
@@ -50,11 +71,9 @@ func (h *APIHandler) GetAttacksByLocation(c *gin.Context) {
 			})
 		}
 	}
-
 	c.JSON(http.StatusOK, locations)
 }
 
-// (Other handlers remain the same)
 func (h *APIHandler) GetTopPasswords(c *gin.Context) {
 	data, err := h.Store.GetTopPasswords()
 	if err != nil {
