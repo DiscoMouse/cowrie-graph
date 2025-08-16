@@ -18,7 +18,7 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/DiscoMouse/cowrie-graph.git](https://github.com/DiscoMouse/cowrie-graph.git)
+    git clone https://github.com/DiscoMouse/cowrie-graph.git
     cd cowrie-graph
     ```
 
