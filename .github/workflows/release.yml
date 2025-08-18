@@ -1,0 +1,28 @@
+name: Release Go Binary
+
+on:
+  push:
+    # This workflow runs only when you push a new tag that starts with 'v' (e.g., v1.0.0, v1.1)
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build the executable
+        run: go build -v -o cowrie-graph ./cmd/web
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          # This tells the action to upload the file named "cowrie-graph"
+          files: cowrie-graph
