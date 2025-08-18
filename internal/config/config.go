@@ -2,16 +2,17 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
 // Config struct to hold our configuration
 type Config struct {
 	DatabaseDSN string `json:"database_dsn"`
-	GeoDBPath   string `json:"geo_db_path"` // <-- ADD THIS LINE
+	GeoDBPath   string `json:"geo_db_path"`
 }
 
-// LoadConfig reads the configuration from config.json
+// LoadConfig simply loads and parses config.json
 func LoadConfig() (Config, error) {
 	var config Config
 	file, err := os.Open("config.json")
@@ -21,6 +22,9 @@ func LoadConfig() (Config, error) {
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
-	return config, err
+	if err = decoder.Decode(&config); err != nil {
+		return config, fmt.Errorf("failed to parse config.json: %w", err)
+	}
+
+	return config, nil
 }

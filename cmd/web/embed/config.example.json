@@ -1,0 +1,4 @@
+{
+  "database_dsn": "user:password@tcp(host:port)/database?parseTime=true",
+  "geo_db_path": "GeoLite2-City.mmdb"
+}
