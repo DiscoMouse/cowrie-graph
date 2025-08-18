@@ -18,7 +18,20 @@ func NewAPIHandler(store *database.Store) *APIHandler {
 	return &APIHandler{Store: store}
 }
 
-// --- NEW HANDLERS ---
+// --- MODIFIED: Added logging to this handler ---
+func (h *APIHandler) GetBarRaceData(c *gin.Context) {
+	data, err := h.Store.GetBarRaceData()
+	if err != nil {
+		// This will print the specific database error to our terminal
+		log.Printf("ERROR: Failed to get bar race data: %v\n", err)
+		// We still return a generic error to the user in the browser
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve bar race data"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+// (Other handlers remain the same)
 func (h *APIHandler) GetTopCountries(c *gin.Context) {
 	data, err := h.Store.GetTopCountries()
 	if err != nil {
@@ -45,8 +58,6 @@ func (h *APIHandler) GetTopOrgs(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, data)
 }
-
-// (Other handlers remain the same)
 func (h *APIHandler) GetAttacksByLocation(c *gin.Context) {
 	ipCounts, err := h.Store.GetIPCounts()
 	if err != nil {
