@@ -52,9 +52,10 @@ func main() {
 		charts.GET("/top-10s", func(c *gin.Context) { c.File("./static/charts/top-10s.html") })
 		charts.GET("/world-map", func(c *gin.Context) { c.File("./static/charts/world-map.html") })
 		charts.GET("/top-geo", func(c *gin.Context) { c.File("./static/charts/top-geo.html") })
-		// --- ADD THIS ROUTE ---
-		charts.GET("/bar-race", func(c *gin.Context) {
-			c.File("./static/charts/bar-race.html")
+		charts.GET("/bar-race", func(c *gin.Context) { c.File("./static/charts/bar-race.html") })
+		// --- NEW ---
+		charts.GET("/country-race", func(c *gin.Context) {
+			c.File("./static/charts/country-race.html")
 		})
 	}
 
@@ -70,8 +71,9 @@ func main() {
 		api.GET("/top-countries", apiHandler.GetTopCountries)
 		api.GET("/top-cities", apiHandler.GetTopCities)
 		api.GET("/top-orgs", apiHandler.GetTopOrgs)
-		// --- ADD THIS API ROUTE ---
 		api.GET("/bar-race-data", apiHandler.GetBarRaceData)
+		// --- NEW ---
+		api.GET("/country-race-data", apiHandler.GetCountryBarRaceData)
 	}
 
 	log.Println("Starting Gin server on :8080")

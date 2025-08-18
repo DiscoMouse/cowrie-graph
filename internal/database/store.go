@@ -12,6 +12,11 @@ import (
 )
 
 // Data Structs...
+type CountryBarRaceDataPoint struct {
+	Hour        string `json:"hour"`
+	CountryCode string `json:"country_code"`
+	Count       int    `json:"count"`
+}
 type BarRaceDataPoint struct {
 	Hour  string `json:"hour"`
 	IP    string `json:"ip"`
@@ -98,7 +103,38 @@ func NewStore(db *sql.DB, geoDBPath string) (*Store, error) {
 	}, nil
 }
 
-// --- THIS METHOD IS NOW CORRECTED ---
+// --- CORRECTED: GetCountryBarRaceData method ---
+func (s *Store) GetCountryBarRaceData() ([]CountryBarRaceDataPoint, error) {
+	query := `
+		SELECT
+			DATE_FORMAT(s.starttime, '%Y-%m-%d %H:00') as hour,
+			ii.country_code,
+			COUNT(s.id) as count
+		FROM sessions s
+		JOIN ip_intelligence ii ON s.ip = ii.ip
+		WHERE ii.country_code IS NOT NULL AND ii.country_code != ''
+		GROUP BY hour, ii.country_code
+		ORDER BY hour;
+	`
+	rows, err := s.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var data []CountryBarRaceDataPoint
+	for rows.Next() {
+		var point CountryBarRaceDataPoint
+		// Scan directly into the string fields
+		if err := rows.Scan(&point.Hour, &point.CountryCode, &point.Count); err != nil {
+			return nil, err
+		}
+		data = append(data, point)
+	}
+	return data, nil
+}
+
+// --- CORRECTED: GetBarRaceData method ---
 func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 	query := `
 		SELECT
@@ -106,7 +142,7 @@ func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 			ip,
 			COUNT(id) as count
 		FROM sessions
-		GROUP BY hour, ip
+		GROUP BY DATE_FORMAT(starttime, '%Y-%m-%d %H:00'), ip
 		ORDER BY hour;
 	`
 	rows, err := s.DB.Query(query)
@@ -118,7 +154,7 @@ func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 	var data []BarRaceDataPoint
 	for rows.Next() {
 		var point BarRaceDataPoint
-		// Scan directly into the string fields of the struct
+		// Scan directly into the string fields
 		if err := rows.Scan(&point.Hour, &point.IP, &point.Count); err != nil {
 			return nil, err
 		}

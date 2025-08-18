@@ -18,20 +18,28 @@ func NewAPIHandler(store *database.Store) *APIHandler {
 	return &APIHandler{Store: store}
 }
 
-// --- MODIFIED: Added logging to this handler ---
-func (h *APIHandler) GetBarRaceData(c *gin.Context) {
-	data, err := h.Store.GetBarRaceData()
+// --- NEW HANDLER ---
+func (h *APIHandler) GetCountryBarRaceData(c *gin.Context) {
+	data, err := h.Store.GetCountryBarRaceData()
 	if err != nil {
-		// This will print the specific database error to our terminal
-		log.Printf("ERROR: Failed to get bar race data: %v\n", err)
-		// We still return a generic error to the user in the browser
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve bar race data"})
+		log.Printf("ERROR: Failed to get country bar race data: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve country bar race data"})
 		return
 	}
 	c.JSON(http.StatusOK, data)
 }
 
 // (Other handlers remain the same)
+func (h *APIHandler) GetBarRaceData(c *gin.Context) {
+	data, err := h.Store.GetBarRaceData()
+	if err != nil {
+		log.Printf("ERROR: Failed to get bar race data: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve bar race data"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
 func (h *APIHandler) GetTopCountries(c *gin.Context) {
 	data, err := h.Store.GetTopCountries()
 	if err != nil {
