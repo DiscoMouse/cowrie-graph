@@ -14,6 +14,16 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 
 ---
 
+##  Prerequisites
+
+Before you begin, you must have a working Cowrie honeypot installation that is actively logging to a MySQL database. `cowrie-graph` is a visualization tool for an existing setup.
+
+1.  **A running Cowrie instance.**
+2.  **Cowrie configured for MySQL output.** Follow the [Official Cowrie MySQL Documentation](https://cowrie.readthedocs.io/en/latest/output/mysql.html) to set up the database schema and configure `cowrie.cfg`.
+3.  **A dedicated MySQL user for `cowrie-graph`.** This application requires its own database user with `SELECT` permissions on the Cowrie database and `ALL PRIVILEGES` on its own `ip_intelligence` table, which it will create automatically.
+
+---
+
 ## 🚀 Installation & Setup
 
 1.  **Clone the Repository:**
@@ -33,13 +43,13 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
         ```bash
         cp config.example.json config.json
         ```
-    * Edit `config.json` and enter your MySQL database connection details. Ensure the `geo_db_path` points to your `.mmdb` file.
+    * Edit `config.json` and enter the MySQL database connection details for the dedicated user you created.
 
 4.  **Run the Application:**
     ```bash
     go run ./cmd/web
     ```
-    The server will start on `http://localhost:8080`. The first time it runs, it will automatically create the `ip_intelligence` table in your database.
+    The server will start on `http://localhost:8080`.
 
 ---
 
@@ -56,15 +66,17 @@ This project is a spiritual successor to the original [kippo-graph](https://gith
 * **Top 10 Statistics Pages:**
     * A dedicated page for attack vectors (Passwords, Usernames, IPs, SSH Clients).
     * A dedicated page for Geo-statistics (Countries, Cities, ISPs/Organizations).
+* **Dynamic Visualizations:** Animated bar race charts for top attacking IPs and countries.
 
 ---
 
 ## 🗺️ Roadmap (Planned Features)
 
-* **Geospatial Analysis:**
-    * [ ] World map visualization of attacker origins.
 * **Advanced Data Enrichment:**
     * [ ] TOR exit node detection.
+* **UI/UX Improvements:**
+    * [ ] Advanced interactivity (cross-filtering charts).
+    * [ ] Bug fixes for chart label rendering.
 * **Security & Operations:**
     * [ ] User authentication to protect the dashboard.
     * [ ] Full containerization with Docker for easy deployment.
