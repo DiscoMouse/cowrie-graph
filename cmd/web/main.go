@@ -49,7 +49,10 @@ func main() {
 	{
 		charts.GET("/attacks-by-day", func(c *gin.Context) { c.File("./static/charts/attacks-by-day.html") })
 		charts.GET("/attacks-by-month", func(c *gin.Context) { c.File("./static/charts/attacks-by-month.html") })
-		charts.GET("/top-10s", func(c *gin.Context) { c.File("./static/charts/top-10s.html") })
+		// --- MODIFIED ---
+		charts.GET("/top-20s", func(c *gin.Context) {
+			c.File("./static/charts/top-20s.html")
+		})
 		charts.GET("/top-geo", func(c *gin.Context) { c.File("./static/charts/top-geo.html") })
 		charts.GET("/bar-race", func(c *gin.Context) { c.File("./static/charts/bar-race.html") })
 		charts.GET("/country-race", func(c *gin.Context) { c.File("./static/charts/country-race.html") })

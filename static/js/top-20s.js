@@ -1,4 +1,4 @@
-// static/js/top-10s.js
+// static/js/top-20s.js
 
 const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
 let currentTheme = localStorage.getItem('theme') || 'dark';
