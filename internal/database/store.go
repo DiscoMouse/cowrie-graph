@@ -11,16 +11,16 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-// Data Structs...
-type CountryBarRaceDataPoint struct {
-	Hour        string `json:"hour"`
-	CountryCode string `json:"country_code"`
-	Count       int    `json:"count"`
-}
+// Data Structs
 type BarRaceDataPoint struct {
 	Hour  string `json:"hour"`
 	IP    string `json:"ip"`
 	Count int    `json:"count"`
+}
+type CountryBarRaceDataPoint struct {
+	Hour        string `json:"hour"`
+	CountryCode string `json:"country_code"`
+	Count       int    `json:"count"`
 }
 type TopCountry struct {
 	CountryCode string `json:"country_code"`
@@ -33,14 +33,6 @@ type TopCity struct {
 type TopOrg struct {
 	Organization string `json:"organization"`
 	Count        int    `json:"count"`
-}
-type LocationStat struct {
-	IP          string  `json:"ip"`
-	CountryCode string  `json:"country_code"`
-	City        string  `json:"city"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	Count       int     `json:"count"`
 }
 type TopPassword struct {
 	Password string `json:"password"`
@@ -103,7 +95,7 @@ func NewStore(db *sql.DB, geoDBPath string) (*Store, error) {
 	}, nil
 }
 
-// --- CORRECTED: GetCountryBarRaceData method ---
+// Methods
 func (s *Store) GetCountryBarRaceData() ([]CountryBarRaceDataPoint, error) {
 	query := `
 		SELECT
@@ -125,7 +117,6 @@ func (s *Store) GetCountryBarRaceData() ([]CountryBarRaceDataPoint, error) {
 	var data []CountryBarRaceDataPoint
 	for rows.Next() {
 		var point CountryBarRaceDataPoint
-		// Scan directly into the string fields
 		if err := rows.Scan(&point.Hour, &point.CountryCode, &point.Count); err != nil {
 			return nil, err
 		}
@@ -133,8 +124,6 @@ func (s *Store) GetCountryBarRaceData() ([]CountryBarRaceDataPoint, error) {
 	}
 	return data, nil
 }
-
-// --- CORRECTED: GetBarRaceData method ---
 func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 	query := `
 		SELECT
@@ -154,7 +143,6 @@ func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 	var data []BarRaceDataPoint
 	for rows.Next() {
 		var point BarRaceDataPoint
-		// Scan directly into the string fields
 		if err := rows.Scan(&point.Hour, &point.IP, &point.Count); err != nil {
 			return nil, err
 		}
@@ -162,8 +150,6 @@ func (s *Store) GetBarRaceData() ([]BarRaceDataPoint, error) {
 	}
 	return data, nil
 }
-
-// (Other methods remain the same)
 func (s *Store) GetTopCountries() ([]TopCountry, error) {
 	query := `
 		SELECT ii.country_code, COUNT(s.id) as count FROM sessions s
@@ -186,7 +172,6 @@ func (s *Store) GetTopCountries() ([]TopCountry, error) {
 	}
 	return items, nil
 }
-
 func (s *Store) GetTopCities() ([]TopCity, error) {
 	query := `
 		SELECT ii.city, COUNT(s.id) as count FROM sessions s
@@ -209,7 +194,6 @@ func (s *Store) GetTopCities() ([]TopCity, error) {
 	}
 	return items, nil
 }
-
 func (s *Store) GetTopOrgs() ([]TopOrg, error) {
 	query := `
 		SELECT ii.organization, COUNT(s.id) as count FROM sessions s
@@ -232,26 +216,6 @@ func (s *Store) GetTopOrgs() ([]TopOrg, error) {
 	}
 	return items, nil
 }
-func (s *Store) GetIPCounts() (map[string]int, error) {
-	query := `SELECT ip, COUNT(*) as count FROM sessions GROUP BY ip;`
-	rows, err := s.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	ipCounts := make(map[string]int)
-	for rows.Next() {
-		var ip string
-		var count int
-		if err := rows.Scan(&ip, &count); err != nil {
-			return nil, err
-		}
-		ipCounts[ip] = count
-	}
-	return ipCounts, nil
-}
-
 func (s *Store) GetOrEnrichIP(ipString string) (*IPIntelligence, error) {
 	intel := &IPIntelligence{IP: ipString}
 	query := "SELECT country_code, city, latitude, longitude, organization, is_tor FROM ip_intelligence WHERE ip = ?"
@@ -302,7 +266,6 @@ func (s *Store) GetOrEnrichIP(ipString string) (*IPIntelligence, error) {
 
 	return s.GetOrEnrichIP(ipString)
 }
-
 func (s *Store) getGeoDataForIP(ipString string) (*GeoData, error) {
 	ip := net.ParseIP(ipString)
 	if ip == nil {
@@ -315,7 +278,6 @@ func (s *Store) getGeoDataForIP(ipString string) (*GeoData, error) {
 	}
 	return &geoData, nil
 }
-
 func (s *Store) CreateIntelligenceTable() error {
 	query := `
 	CREATE TABLE IF NOT EXISTS ip_intelligence (
@@ -333,7 +295,6 @@ func (s *Store) CreateIntelligenceTable() error {
 	_, err := s.DB.Exec(query)
 	return err
 }
-
 func (s *Store) GetTopPasswords() ([]TopPassword, error) {
 	query := `SELECT password, COUNT(*) as count FROM auth GROUP BY password ORDER BY count DESC LIMIT 10;`
 	rows, err := s.DB.Query(query)

@@ -50,13 +50,9 @@ func main() {
 		charts.GET("/attacks-by-day", func(c *gin.Context) { c.File("./static/charts/attacks-by-day.html") })
 		charts.GET("/attacks-by-month", func(c *gin.Context) { c.File("./static/charts/attacks-by-month.html") })
 		charts.GET("/top-10s", func(c *gin.Context) { c.File("./static/charts/top-10s.html") })
-		charts.GET("/world-map", func(c *gin.Context) { c.File("./static/charts/world-map.html") })
 		charts.GET("/top-geo", func(c *gin.Context) { c.File("./static/charts/top-geo.html") })
 		charts.GET("/bar-race", func(c *gin.Context) { c.File("./static/charts/bar-race.html") })
-		// --- NEW ---
-		charts.GET("/country-race", func(c *gin.Context) {
-			c.File("./static/charts/country-race.html")
-		})
+		charts.GET("/country-race", func(c *gin.Context) { c.File("./static/charts/country-race.html") })
 	}
 
 	api := router.Group("/api/v1")
@@ -67,12 +63,10 @@ func main() {
 		api.GET("/top-ips", apiHandler.GetTopIPs)
 		api.GET("/top-clients", apiHandler.GetTopClients)
 		api.GET("/attacks-by-month", apiHandler.GetAttacksByMonth)
-		api.GET("/attacks-by-location", apiHandler.GetAttacksByLocation)
 		api.GET("/top-countries", apiHandler.GetTopCountries)
 		api.GET("/top-cities", apiHandler.GetTopCities)
 		api.GET("/top-orgs", apiHandler.GetTopOrgs)
 		api.GET("/bar-race-data", apiHandler.GetBarRaceData)
-		// --- NEW ---
 		api.GET("/country-race-data", apiHandler.GetCountryBarRaceData)
 	}
 
